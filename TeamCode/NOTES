@@ -1,0 +1,166 @@
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+public class AutonomousOpMode extends LinearOpMode {
+
+    private DcMotor frontLeftMotor;
+    private DcMotor frontRightMotor;
+    private DcMotor rearLeftMotor;
+    private DcMotor rearRightMotor;
+
+    // Constants for encoder counts and PID parameters
+    private static final int COUNTS_PER_REVOLUTION = 1120;
+    private static final double WHEEL_DIAMETER_INCHES = 4.0;
+    private static final double COUNTS_PER_INCH = COUNTS_PER_REVOLUTION / (WHEEL_DIAMETER_INCHES * Math.PI);
+
+    private static final double P_COEFFICIENT = 0.1;
+    private static final double I_COEFFICIENT = 0.05;
+    private static final double D_COEFFICIENT = 0.01;
+
+    private ElapsedTime runtime = new ElapsedTime();
+
+    @Override
+    public void runOpMode() {
+        frontLeftMotor = hardwareMap.get(DcMotor.class, "front_left_motor");
+        frontRightMotor = hardwareMap.get(DcMotor.class, "front_right_motor");
+        rearLeftMotor = hardwareMap.get(DcMotor.class, "rear_left_motor");
+        rearRightMotor = hardwareMap.get(DcMotor.class, "rear_right_motor");
+
+        // Set motor directions if needed
+
+        waitForStart();
+
+        // Move forward 24 inches using encoders
+        encoderDrive(0.5, 24, 10);
+
+        // Additional autonomous actions
+
+        // Stop motors
+        stopMotors();
+    }
+
+    private void encoderDrive(double speed, double inches, double timeout) {
+        int targetPosition = (int) (inches * COUNTS_PER_INCH);
+
+        frontLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        int frontLeftStartPos = frontLeftMotor.getCurrentPosition();
+        int frontRightStartPos = frontRightMotor.getCurrentPosition();
+        int rearLeftStartPos = rearLeftMotor.getCurrentPosition();
+        int rearRightStartPos = rearRightMotor.getCurrentPosition();
+
+        int frontLeftTarget = frontLeftStartPos + targetPosition;
+        int frontRightTarget = frontRightStartPos + targetPosition;
+        int rearLeftTarget = rearLeftStartPos + targetPosition;
+        int rearRightTarget = rearRightStartPos + targetPosition;
+
+        runtime.reset();
+
+        while (opModeIsActive() && (runtime.seconds() < timeout)) {
+            double frontLeftError = frontLeftTarget - frontLeftMotor.getCurrentPosition();
+            double frontRightError = frontRightTarget - frontRightMotor.getCurrentPosition();
+            double rearLeftError = rearLeftTarget - rearLeftMotor.getCurrentPosition();
+            double rearRightError = rearRightTarget - rearRightMotor.getCurrentPosition();
+
+            double frontLeftPower = P_COEFFICIENT * frontLeftError;
+            double frontRightPower = P_COEFFICIENT * frontRightError;
+            double rearLeftPower = P_COEFFICIENT * rearLeftError;
+            double rearRightPower = P_COEFFICIENT * rearRightError;
+
+            frontLeftMotor.setPower(speed * frontLeftPower);
+            frontRightMotor.setPower(speed * frontRightPower);
+            rearLeftMotor.setPower(speed * rearLeftPower);
+            rearRightMotor.setPower(speed * rearRightPower);
+
+            if (Math.abs(frontLeftError) < 10 && Math.abs(frontRightError) < 10 &&
+                Math.abs(rearLeftError) < 10 && Math.abs(rearRightError) < 10) {
+                break;
+            }
+
+            telemetry.addData("Front Left Position", frontLeftMotor.getCurrentPosition());
+            telemetry.addData("Front Right Position", frontRightMotor.getCurrentPosition());
+            telemetry.addData("Rear Left Position", rearLeftMotor.getCurrentPosition());
+            telemetry.addData("Rear Right Position", rearRightMotor.getCurrentPosition());
+            telemetry.update();
+        }
+
+        stopMotors();
+
+        frontLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+    private void stopMotors() {
+        frontLeftMotor.setPower(0);
+        frontRightMotor.setPower(0);
+        rearLeftMotor.setPower(0);
+        rearRightMotor.setPower(0);
+    }
+}
+
+
+
+
+
+private void encoderDrive(double speed, double inches, double angle, double timeout) {
+    int targetPosition = (int) (inches * COUNTS_PER_INCH);
+
+    frontLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    frontRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    rearLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    rearRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+    int frontLeftStartPos = frontLeftMotor.getCurrentPosition();
+    int frontRightStartPos = frontRightMotor.getCurrentPosition();
+    int rearLeftStartPos = rearLeftMotor.getCurrentPosition();
+    int rearRightStartPos = rearRightMotor.getCurrentPosition();
+
+    int frontLeftTarget = frontLeftStartPos + targetPosition;
+    int frontRightTarget = frontRightStartPos + targetPosition;
+    int rearLeftTarget = rearLeftStartPos + targetPosition;
+    int rearRightTarget = rearRightStartPos + targetPosition;
+
+    double radians = Math.toRadians(angle); // Convert angle to radians
+
+    double correctionX = Math.cos(radians); // Calculate X correction
+    double correctionY = Math.sin(radians); // Calculate Y correction
+
+    runtime.reset();
+
+    while (opModeIsActive() && (runtime.seconds() < timeout)) {
+        // Calculate errors and apply corrections as before
+
+        // Adjust motor powers based on corrections and target speed
+        double powerFrontLeft = speed * (correctionX + correctionY);
+        double powerFrontRight = speed * (-correctionX + correctionY);
+        double powerRearLeft = speed * (-correctionX - correctionY);
+        double powerRearRight = speed * (correctionX - correctionY);
+
+        // Set motor powers
+        frontLeftMotor.setPower(powerFrontLeft);
+        frontRightMotor.setPower(powerFrontRight);
+        rearLeftMotor.setPower(powerRearLeft);
+        rearRightMotor.setPower(powerRearRight);
+
+        // Check conditions to break the loop (reaching target or timeout)
+        if (reachedTarget()) {
+            break;
+        }
+
+        // Sleep to allow motors and calculations to update
+        sleep(50);
+    }
+
+    stopMotors();
+
+    frontLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    frontRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    rearLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    rearRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+}
